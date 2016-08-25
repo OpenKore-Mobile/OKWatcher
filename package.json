@@ -1,0 +1,17 @@
+{
+  "name": "openkore-watcher",
+  "version": "1.0.0",
+  "description": "",
+  "main": "watcher.js",
+  "dependencies": {
+    "got": "^6.3.0",
+    "node-watch": "^0.4.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "John-Lin <linton.tw@gmail.com> (https://johnlin.me)",
+  "license": "MIT"
+}
