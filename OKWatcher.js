@@ -18,8 +18,24 @@ function grepRoUsername() {
   var configContent = fs.readFileSync('./control/config.txt', 'utf-8');
   var roUsernameRe = /username (.*)/;
   var roUsernameFound = configContent.match(roUsernameRe);
-  var roUsername = roUsernameFound[1];
-  return roUsername;
+  if (roUsernameFound === null) {
+    return null;
+  } else {
+    return roUsernameFound[1];
+  }
+}
+
+function checkLatestVersion(clientVersion, callback) {
+  var versionAPI = `${logServer}/api/v1/version`;
+  console.log('[-] Connecting to Log Server...');
+  got(versionAPI).then(response => {
+    var versionJson = JSON.parse(response.body);
+    var isLatest = versionJson.service.client.version === clientVersion;
+    callback(null, isLatest);
+  }).catch(error => {
+    console.log(`[x] ERROR CODE: ${error.code}`);
+  });;
+
 }
 
 function register(username) {
@@ -37,7 +53,6 @@ function register(username) {
     },
     body: JSON.stringify(payload),
   };
-  console.log('[-] Connecting to Log Server...');
 
   got(registerAPI, options).then(response => {
 
@@ -215,12 +230,14 @@ function saveItems(username) {
     got(itemsAPI, options);
   }
 }
-console.log(`=== OKWatcher Version: ${pjson.version} ===`)
+
+console.log(`=== OKWatcher Version: ${pjson.version} ===`);
 
 var roUsername = grepRoUsername();
 
-if (roUsername === '') {
+if (roUsername === '' || roUsername === null) {
   console.log('[x] ERROR: USERNAME NOT FOUND!');
+  setTimeout(() => { console.log('[*] Exit'); }, 3000);
 } else {
   console.log('[*] Patching files...');
   patchConfigFile();
@@ -228,18 +245,26 @@ if (roUsername === '') {
   patchLogPm();
   patchCommandsPm();
 
-  register(roUsername);
+  checkLatestVersion(pjson.version, (err, isLatest) => {
 
-  watch('./logs', function (filename) {
-    var logFilename = path.basename(filename);
-    console.log(`[*] ${filename} changed. Saved it.`);
+    if (isLatest) {
+      register(roUsername);
+      watch('./logs', function (filename) {
+        var logFilename = path.basename(filename);
+        console.log(`[*] ${filename} changed. Saved it.`);
 
-    if (logFilename === 'exp.txt') {
-      saveExpReport(roUsername);
-    } else if (logFilename === 'charInfo.txt') {
-      saveCharInfo(roUsername);
-    } else if (logFilename === 'items.txt') {
-      saveItems(roUsername);
+        if (logFilename === 'exp.txt') {
+          saveExpReport(roUsername);
+        } else if (logFilename === 'charInfo.txt') {
+          saveCharInfo(roUsername);
+        } else if (logFilename === 'items.txt') {
+          saveItems(roUsername);
+        }
+
+      });
+    } else {
+      console.log('[x] VERSION CHECK ERROR: Please check the OKWatcher version!');
+      setTimeout(() => { console.log('[*] Exit'); }, 3000);
     }
 
   });
