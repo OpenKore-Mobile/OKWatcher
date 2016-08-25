@@ -1,20 +1,26 @@
+// ╔═╗╦╔═  ╦ ╦┌─┐┌┬┐┌─┐┬ ┬┌─┐┬─┐
+// ║ ║╠╩╗  ║║║├─┤ │ │  ├─┤├┤ ├┬┘
+// ╚═╝╩ ╩  ╚╩╝┴ ┴ ┴ └─┘┴ ┴└─┘┴└─
+
 var watch = require('node-watch');
 var got = require('got');
 var fs = require('fs');
 var path = require('path');
-
-// require username as a key for memcachier
-var configContent = fs.readFileSync('./control/config.txt', 'utf-8');
-var roUsernameRe = /username (.*)/;
-var roUsernameFound = configContent.match(roUsernameRe);
-var roUsername = roUsernameFound[1];
+var pjson = require('./package.json');
 
 var username = 'ADMIN';
 var password = 'PASSWORD';
 var logServer = 'https://LOGSERVER.COM';
 
-// var auth = 'Basic ' + new Buffer(username + ':' + password).toString('base64');
 var auth = `Basic ${new Buffer(`${username}:${password}`).toString('base64')}`;
+
+function grepRoUsername() {
+  var configContent = fs.readFileSync('./control/config.txt', 'utf-8');
+  var roUsernameRe = /username (.*)/;
+  var roUsernameFound = configContent.match(roUsernameRe);
+  var roUsername = roUsernameFound[1];
+  return roUsername;
+}
 
 function register(username) {
   var registerAPI = `${logServer}/api/v1/account`;
@@ -31,16 +37,20 @@ function register(username) {
     },
     body: JSON.stringify(payload),
   };
+  console.log('[-] Connecting to Log Server...');
 
   got(registerAPI, options).then(response => {
+
     if (error.response.statusCode === 201) {
-      console.log(`[*] Welecome ${roUsername}`);
+      console.log(`[*] Connected! Welecome ${roUsername}`);
     }
 
     // console.log(response.statusCode);
   }).catch(error => {
     if (error.response.statusCode === 409) {
-      console.log(`[*] Welecome back ${roUsername}`);
+      console.log(`[*] Connected! Welecome back ${roUsername}`);
+    } else {
+      console.log(`[*] ERROR: ${error.response.body}`);
     }
 
     // console.log(error.response.body);
@@ -205,26 +215,23 @@ function saveItems(username) {
     got(itemsAPI, options);
   }
 }
+console.log(`=== OKWatcher Version: ${pjson.version} ===`)
+
+var roUsername = grepRoUsername();
 
 if (roUsername === '') {
-  console.log('[x] USERNAME NOT FOUND!');
+  console.log('[x] ERROR: USERNAME NOT FOUND!');
 } else {
-  // console.log('╦  ┌─┐┌─┐  ╦ ╦┌─┐┌┬┐┌─┐┬ ┬┌─┐┬─┐');
-  // console.log('║  │ ││ ┬  ║║║├─┤ │ │  ├─┤├┤ ├┬┘');
-  // console.log('╩═╝└─┘└─┘  ╚╩╝┴ ┴ ┴ └─┘┴ ┴└─┘┴└─');
-
-  register(roUsername);
-
-  console.log('[*] Patching files');
+  console.log('[*] Patching files...');
   patchConfigFile();
   patchMacrosFile();
   patchLogPm();
   patchCommandsPm();
 
-  watch('./logs', function (filename) {
-    // console.log(filename, ' changed.');
+  register(roUsername);
 
-    logFilename = path.basename(filename);
+  watch('./logs', function (filename) {
+    var logFilename = path.basename(filename);
     console.log(`[*] ${filename} changed. Saved it.`);
 
     if (logFilename === 'exp.txt') {
