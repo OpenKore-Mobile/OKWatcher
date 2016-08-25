@@ -1,8 +1,8 @@
 {
   "name": "okwatcher",
-  "version": "1.0.0",
+  "version": "0.1.1",
   "description": "",
-  "main": "watcher.js",
+  "main": "OKWatcher.js",
   "dependencies": {
     "got": "^6.3.0",
     "node-watch": "^0.4.0"
